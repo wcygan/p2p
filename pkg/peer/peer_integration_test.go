@@ -43,8 +43,13 @@ func TestThreePeerMessaging(t *testing.T) {
 		t.Fatalf("p3 connect p2: %v", err)
 	}
 
-	// Wait briefly for all connections to establish
-	time.Sleep(100 * time.Millisecond)
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if p1.Connections() == 1 && p2.Connections() == 2 && p3.Connections() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	msg := &message.Message{SenderID: p1.ID, SequenceNo: 1, Payload: "hello"}
 	if err := p1.Broadcast(msg); err != nil {
@@ -61,5 +66,36 @@ func TestThreePeerMessaging(t *testing.T) {
 		case <-time.After(time.Second):
 			t.Fatal("timeout waiting for message")
 		}
+	}
+}
+
+// TestBroadcastNoLoop verifies that a message broadcast does not bounce back to the sender.
+func TestBroadcastNoLoop(t *testing.T) {
+	p1 := New("localhost:0")
+	p2 := New("localhost:0")
+
+	c1, c2 := net.Pipe()
+	p1.HandleConn(p2.ID, c1)
+	p2.HandleConn(p1.ID, c2)
+
+	msg := &message.Message{SenderID: p1.ID, SequenceNo: 1, Payload: "hi"}
+	if err := p1.Broadcast(msg); err != nil {
+		t.Fatalf("broadcast: %v", err)
+	}
+
+	select {
+	case m := <-p2.Messages:
+		if m.Payload != msg.Payload {
+			t.Fatalf("expected payload %s got %s", msg.Payload, m.Payload)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for message")
+	}
+
+	select {
+	case m := <-p1.Messages:
+		t.Fatalf("unexpected looped message: %v", m)
+	case <-time.After(100 * time.Millisecond):
+		// ok - no message received
 	}
 }

@@ -34,3 +34,17 @@ func TestHandshakeLongID(t *testing.T) {
 		t.Fatal("expected error from long remote id, got nil")
 	}
 }
+
+func TestHandshakeRemoteClose(t *testing.T) {
+	c1, c2 := net.Pipe()
+	defer c1.Close()
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := handshake(c1, "local")
+		errCh <- err
+	}()
+	c2.Close()
+	if err := <-errCh; err == nil {
+		t.Fatal("expected error from closed connection")
+	}
+}
