@@ -139,13 +139,23 @@ func (p *Peer) Broadcast(msg *message.Message) error {
 	p.seen.Seen(fmt.Sprintf("%s/%d", msg.SenderID, msg.SequenceNo))
 
 	p.mu.Lock()
-	defer p.mu.Unlock()
+	conns := make(map[string]net.Conn, len(p.conns))
 	for id, c := range p.conns {
+		conns[id] = c
+	}
+	p.mu.Unlock()
+
+	var firstErr error
+	for id, c := range conns {
 		if _, err := c.Write(data); err != nil {
-			return fmt.Errorf("write to %s: %w", id, err)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("write to %s: %w", id, err)
+			}
+			p.RemoveConn(id)
+			continue
 		}
 	}
-	return nil
+	return firstErr
 }
 
 // Seen reports whether the message has been encountered before and records it
