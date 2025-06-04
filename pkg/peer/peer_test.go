@@ -3,6 +3,7 @@ package peer
 import (
 	"net"
 	"testing"
+	"time"
 
 	"example.com/p2p/pkg/message"
 )
@@ -78,6 +79,80 @@ func TestSeen(t *testing.T) {
 	}
 	if !p.Seen(msg) {
 		t.Fatalf("second time message should be seen")
+	}
+}
+
+func TestHandshake(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+
+	p1 := New("localhost:0")
+	p2 := New("localhost:0")
+
+	var id1, id2 string
+	var err1, err2 error
+	done := make(chan struct{})
+	go func() {
+		conn, err := ln.Accept()
+		if err != nil {
+			err1 = err
+			close(done)
+			return
+		}
+		id1, err1 = handshake(conn, p1.ID)
+		conn.Close()
+		close(done)
+	}()
+	conn, err := net.Dial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	id2, err2 = handshake(conn, p2.ID)
+	conn.Close()
+	<-done
+
+	if err1 != nil || err2 != nil {
+		t.Fatalf("handshake errors: %v %v", err1, err2)
+	}
+	if id1 != p2.ID || id2 != p1.ID {
+		t.Fatalf("unexpected ids %s %s", id1, id2)
+	}
+}
+
+func TestConnectServe(t *testing.T) {
+	p1 := New("localhost:0")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+	go p1.Serve(ln)
+
+	p2 := New("localhost:0")
+	if _, err := p2.Connect(ln.Addr().String()); err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+
+	// give some time for connection to register
+	if p1.Connections() != 1 || p2.Connections() != 1 {
+		t.Fatalf("expected both peers to have 1 connection")
+	}
+
+	msg := &message.Message{SenderID: p2.ID, SequenceNo: 1, Payload: "hi"}
+	if err := p2.Broadcast(msg); err != nil {
+		t.Fatalf("broadcast: %v", err)
+	}
+
+	select {
+	case m := <-p1.Messages:
+		if m.Payload != msg.Payload {
+			t.Fatalf("expected payload %s got %s", msg.Payload, m.Payload)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for message")
 	}
 }
 
