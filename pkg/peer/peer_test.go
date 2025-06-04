@@ -80,3 +80,49 @@ func TestSeen(t *testing.T) {
 		t.Fatalf("second time message should be seen")
 	}
 }
+
+func TestHandleConn(t *testing.T) {
+	p := New("localhost:0")
+
+	// connection that will receive broadcasts
+	b1a, b1b := net.Pipe()
+	defer b1a.Close()
+	defer b1b.Close()
+	p.AddConn("peer1", b1a)
+
+	// incoming connection
+	inA, inB := net.Pipe()
+	defer inA.Close()
+	defer inB.Close()
+	p.HandleConn("peer2", inB)
+
+	msg := &message.Message{SenderID: "peer2", SequenceNo: 1, Payload: "hello"}
+	data, _ := msg.Marshal()
+	if _, err := inA.Write(data); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	// verify broadcast to existing conn
+	buf := make([]byte, 512)
+	n, err := b1b.Read(buf)
+	if err != nil {
+		t.Fatalf("read broadcast: %v", err)
+	}
+	got, err := message.Unmarshal(buf[:n])
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got.Payload != msg.Payload {
+		t.Fatalf("expected %s, got %s", msg.Payload, got.Payload)
+	}
+
+	// verify message delivered on channel
+	select {
+	case m := <-p.Messages:
+		if m.Payload != msg.Payload {
+			t.Fatalf("expected payload %s, got %s", msg.Payload, m.Payload)
+		}
+	default:
+		t.Fatal("expected message on channel")
+	}
+}

@@ -19,15 +19,18 @@ type Peer struct {
 	mu    sync.Mutex
 	conns map[string]net.Conn
 	seen  *dedup.Deduper
+	// Messages delivers incoming messages from other peers.
+	Messages chan *message.Message
 }
 
 // New creates a new peer listening on the given address.
 func New(addr string) *Peer {
 	return &Peer{
-		ID:    randomID(),
-		Addr:  addr,
-		conns: make(map[string]net.Conn),
-		seen:  dedup.New(100),
+		ID:       randomID(),
+		Addr:     addr,
+		conns:    make(map[string]net.Conn),
+		seen:     dedup.New(100),
+		Messages: make(chan *message.Message, 16),
 	}
 }
 
@@ -87,4 +90,33 @@ func (p *Peer) Broadcast(msg *message.Message) error {
 // if it has not.
 func (p *Peer) Seen(msg *message.Message) bool {
 	return p.seen.Seen(fmt.Sprintf("%s/%d", msg.SenderID, msg.SequenceNo))
+}
+
+// HandleConn registers the connection and starts processing incoming messages.
+func (p *Peer) HandleConn(id string, conn net.Conn) {
+	p.AddConn(id, conn)
+	go p.readLoop(id, conn)
+}
+
+func (p *Peer) readLoop(id string, conn net.Conn) {
+	defer p.RemoveConn(id)
+	buf := make([]byte, 4096)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			return
+		}
+		msg, err := message.Unmarshal(buf[:n])
+		if err != nil {
+			continue
+		}
+		if p.Seen(msg) {
+			continue
+		}
+		select {
+		case p.Messages <- msg:
+		default:
+		}
+		_ = p.Broadcast(msg)
+	}
 }
