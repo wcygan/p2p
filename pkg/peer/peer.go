@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"example.com/p2p/pkg/dedup"
 	"example.com/p2p/pkg/message"
 	"sync"
 )
@@ -17,6 +18,7 @@ type Peer struct {
 
 	mu    sync.Mutex
 	conns map[string]net.Conn
+	seen  *dedup.Deduper
 }
 
 // New creates a new peer listening on the given address.
@@ -25,6 +27,7 @@ func New(addr string) *Peer {
 		ID:    randomID(),
 		Addr:  addr,
 		conns: make(map[string]net.Conn),
+		seen:  dedup.New(100),
 	}
 }
 
@@ -67,6 +70,9 @@ func (p *Peer) Broadcast(msg *message.Message) error {
 		return err
 	}
 
+	// mark our own message as seen to prevent rebroadcast loops
+	p.seen.Seen(fmt.Sprintf("%s/%d", msg.SenderID, msg.SequenceNo))
+
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for id, c := range p.conns {
@@ -75,4 +81,10 @@ func (p *Peer) Broadcast(msg *message.Message) error {
 		}
 	}
 	return nil
+}
+
+// Seen reports whether the message has been encountered before and records it
+// if it has not.
+func (p *Peer) Seen(msg *message.Message) bool {
+	return p.seen.Seen(fmt.Sprintf("%s/%d", msg.SenderID, msg.SequenceNo))
 }

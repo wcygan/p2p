@@ -69,3 +69,14 @@ func TestBroadcast(t *testing.T) {
 		t.Fatalf("expected payload %s, got %s and %s", msg.Payload, m1.Payload, m2.Payload)
 	}
 }
+
+func TestSeen(t *testing.T) {
+	p := New("localhost:0")
+	msg := &message.Message{SenderID: "p1", SequenceNo: 1, Payload: "hi"}
+	if p.Seen(msg) {
+		t.Fatalf("first time message should be unseen")
+	}
+	if !p.Seen(msg) {
+		t.Fatalf("second time message should be seen")
+	}
+}
