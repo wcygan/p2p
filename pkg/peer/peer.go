@@ -3,7 +3,10 @@ package peer
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"net"
+
+	"example.com/p2p/pkg/message"
 	"sync"
 )
 
@@ -55,4 +58,21 @@ func (p *Peer) Connections() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return len(p.conns)
+}
+
+// Broadcast sends the given message to all connected peers.
+func (p *Peer) Broadcast(msg *message.Message) error {
+	data, err := msg.Marshal()
+	if err != nil {
+		return err
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for id, c := range p.conns {
+		if _, err := c.Write(data); err != nil {
+			return fmt.Errorf("write to %s: %w", id, err)
+		}
+	}
+	return nil
 }
