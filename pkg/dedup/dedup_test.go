@@ -21,3 +21,15 @@ func TestDeduper(t *testing.T) {
 		t.Fatalf("'a' should have been evicted and be unseen again")
 	}
 }
+func TestDeduperCapacityOne(t *testing.T) {
+	d := New(0)
+	if d.Seen("a") {
+		t.Fatalf("first time 'a' should be unseen")
+	}
+	if d.Seen("b") {
+		t.Fatalf("first time 'b' should be unseen")
+	}
+	if d.Seen("a") {
+		t.Fatalf("'a' should have been evicted with capacity 1")
+	}
+}

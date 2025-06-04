@@ -16,3 +16,9 @@ func TestMarshalUnmarshal(t *testing.T) {
 		t.Fatalf("decoded message does not match original")
 	}
 }
+
+func TestUnmarshalInvalid(t *testing.T) {
+	if _, err := Unmarshal([]byte("{invalid")); err == nil {
+		t.Fatal("expected error from invalid JSON")
+	}
+}
