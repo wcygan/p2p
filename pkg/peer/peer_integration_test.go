@@ -43,8 +43,13 @@ func TestThreePeerMessaging(t *testing.T) {
 		t.Fatalf("p3 connect p2: %v", err)
 	}
 
-	// Wait briefly for all connections to establish
-	time.Sleep(100 * time.Millisecond)
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if p1.Connections() == 1 && p2.Connections() == 2 && p3.Connections() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	msg := &message.Message{SenderID: p1.ID, SequenceNo: 1, Payload: "hello"}
 	if err := p1.Broadcast(msg); err != nil {

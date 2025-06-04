@@ -12,8 +12,12 @@ func TestHandleConnRemoteClose(t *testing.T) {
 	a, b := net.Pipe()
 	p.HandleConn("peer2", a)
 	b.Close()
-	time.Sleep(50 * time.Millisecond)
-	if p.Connections() != 0 {
-		t.Fatalf("expected connection to be removed, got %d", p.Connections())
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if p.Connections() == 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
+	t.Fatalf("expected connection to be removed, got %d", p.Connections())
 }

@@ -136,7 +136,13 @@ func TestConnectServe(t *testing.T) {
 		t.Fatalf("connect: %v", err)
 	}
 
-	// give some time for connection to register
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if p1.Connections() == 1 && p2.Connections() == 1 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 	if p1.Connections() != 1 || p2.Connections() != 1 {
 		t.Fatalf("expected both peers to have 1 connection")
 	}
