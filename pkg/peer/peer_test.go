@@ -137,8 +137,9 @@ func TestConnectServe(t *testing.T) {
 	}
 
 	// give some time for connection to register
+	time.Sleep(100 * time.Millisecond)
 	if p1.Connections() != 1 || p2.Connections() != 1 {
-		t.Fatalf("expected both peers to have 1 connection")
+		t.Fatalf("expected both peers to have 1 connection, got p1=%d p2=%d", p1.Connections(), p2.Connections())
 	}
 
 	msg := &message.Message{SenderID: p2.ID, SequenceNo: 1, Payload: "hi"}
