@@ -1,0 +1,20 @@
+# P2P Chat Configuration Example
+# Copy this to config.yaml and modify as needed
+
+# Network settings
+listen_addr: "localhost:8080"
+peers: ["localhost:8081", "localhost:8082"]
+
+# Connection settings
+max_connections: 50
+connect_timeout: "10s"
+heartbeat_interval: "30s"
+heartbeat_timeout: "5s"
+
+# Message settings
+message_buffer_size: 16
+dedup_cache_size: 100
+
+# Logging settings
+log_level: "info"        # debug, info, warn, error
+log_format: "text"       # text or json
