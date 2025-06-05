@@ -50,7 +50,16 @@ func (hm *HeartbeatManager) Start() {
 
 // Stop stops the heartbeat monitoring
 func (hm *HeartbeatManager) Stop() {
-	close(hm.stopCh)
+	hm.mu.Lock()
+	defer hm.mu.Unlock()
+	
+	select {
+	case <-hm.stopCh:
+		// Already stopped
+		return
+	default:
+		close(hm.stopCh)
+	}
 }
 
 // AddPeer adds a peer to be monitored

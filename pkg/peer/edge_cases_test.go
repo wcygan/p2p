@@ -27,7 +27,7 @@ func TestHandshakeReadError(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		_, err := handshake(c1, "local")
+		_, err := Handshake(c1, "local")
 		errCh <- err
 	}()
 
@@ -47,7 +47,7 @@ func TestHandshakeWriteError(t *testing.T) {
 	// Close c1 to cause write error
 	c1.Close()
 
-	_, err := handshake(c1, "local")
+	_, err := Handshake(c1, "local")
 	if err == nil {
 		t.Fatal("expected error from write to closed connection, got nil")
 	}
@@ -79,13 +79,13 @@ func TestConnectHandshakeError(t *testing.T) {
 			if err != nil {
 				return
 			}
-			conn.Close() // Close immediately to cause handshake error
+			conn.Close() // Close immediately to cause Handshake error
 		}
 	}()
 	
 	_, err = p.Connect(ln.Addr().String())
 	if err == nil {
-		t.Fatal("expected error from failed handshake, got nil")
+		t.Fatal("expected error from failed Handshake, got nil")
 	}
 }
 
@@ -222,7 +222,7 @@ func TestHandshakePartialRead(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		_, err := handshake(c1, "local")
+		_, err := Handshake(c1, "local")
 		errCh <- err
 	}()
 
@@ -251,7 +251,7 @@ func TestHandshakeZeroRead(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		_, err := handshake(c1, "local")
+		_, err := Handshake(c1, "local")
 		errCh <- err
 	}()
 
@@ -284,21 +284,21 @@ func TestServeHandshakeFailure(t *testing.T) {
 		_ = p.Serve(ln)
 	}()
 	
-	// Connect but don't perform proper handshake
+	// Connect but don't perform proper Handshake
 	conn, err := net.Dial("tcp", ln.Addr().String())
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
 	
-	// Send invalid handshake data and close
+	// Send invalid Handshake data and close
 	conn.Write([]byte("invalid"))
 	conn.Close()
 	
 	// Give server time to handle the connection
 	time.Sleep(50 * time.Millisecond)
 	
-	// Connection should not be added due to handshake failure
+	// Connection should not be added due to Handshake failure
 	if p.Connections() != 0 {
-		t.Fatalf("expected 0 connections after handshake failure, got %d", p.Connections())
+		t.Fatalf("expected 0 connections after Handshake failure, got %d", p.Connections())
 	}
 }

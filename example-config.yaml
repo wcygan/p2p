@@ -16,5 +16,5 @@ message_buffer_size: 16
 dedup_cache_size: 100
 
 # Logging settings
-log_level: "info"        # debug, info, warn, error
-log_format: "text"       # text or json
+log_level: "info"
+log_format: "text"

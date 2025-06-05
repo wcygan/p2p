@@ -102,7 +102,7 @@ func TestHandshake(t *testing.T) {
 			close(done)
 			return
 		}
-		id1, err1 = handshake(conn, p1.ID)
+		id1, err1 = Handshake(conn, p1.ID)
 		conn.Close()
 		close(done)
 	}()
@@ -110,12 +110,12 @@ func TestHandshake(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
-	id2, err2 = handshake(conn, p2.ID)
+	id2, err2 = Handshake(conn, p2.ID)
 	conn.Close()
 	<-done
 
 	if err1 != nil || err2 != nil {
-		t.Fatalf("handshake errors: %v %v", err1, err2)
+		t.Fatalf("Handshake errors: %v %v", err1, err2)
 	}
 	if id1 != p2.ID || id2 != p1.ID {
 		t.Fatalf("unexpected ids %s %s", id1, id2)

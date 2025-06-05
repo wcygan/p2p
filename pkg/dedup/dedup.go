@@ -1,7 +1,10 @@
 package dedup
 
+import "sync"
+
 // Deduper tracks recently seen IDs to avoid processing duplicates.
 type Deduper struct {
+	mu       sync.RWMutex
 	capacity int
 	set      map[string]struct{}
 	order    []string
@@ -21,6 +24,9 @@ func New(capacity int) *Deduper {
 // Seen reports whether id has been seen before. If not, it records the id and
 // returns false. Once the capacity is exceeded, the oldest ID is evicted.
 func (d *Deduper) Seen(id string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	
 	if _, ok := d.set[id]; ok {
 		return true
 	}

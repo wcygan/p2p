@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+PLAN.md
+CLAUDE.md
+
+# Test and coverage files
+*.test
+*.out
+coverage.html
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+p2p
+*.exe
+
+# Docker files (don't copy into container)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log

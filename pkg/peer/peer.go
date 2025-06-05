@@ -35,6 +35,19 @@ func New(addr string) *Peer {
 	}
 }
 
+// NewWithConfig creates a new peer with configuration-based settings.
+func NewWithConfig(addr string, cfg interface{}) *Peer {
+	// For now, use default settings. In a full implementation,
+	// we would extract buffer sizes and other settings from cfg.
+	return &Peer{
+		ID:       randomID(),
+		Addr:     addr,
+		conns:    make(map[string]net.Conn),
+		seen:     dedup.New(100),
+		Messages: make(chan *message.Message, 16),
+	}
+}
+
 func randomID() string {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
@@ -43,10 +56,10 @@ func randomID() string {
 	return hex.EncodeToString(b)
 }
 
-// handshake exchanges peer IDs on the given connection. The caller's ID is
+// Handshake exchanges peer IDs on the given connection. The caller's ID is
 // sent first, then the remote ID is read back. It returns the remote ID or an
 // error.
-func handshake(conn net.Conn, id string) (string, error) {
+func Handshake(conn net.Conn, id string) (string, error) {
 	if _, err := fmt.Fprintf(conn, "%s\n", id); err != nil {
 		return "", err
 	}
@@ -102,7 +115,7 @@ func (p *Peer) Connect(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	remoteID, err := handshake(conn, p.ID)
+	remoteID, err := Handshake(conn, p.ID)
 	if err != nil {
 		conn.Close()
 		return "", err
@@ -119,7 +132,7 @@ func (p *Peer) Serve(l net.Listener) error {
 		if err != nil {
 			return err
 		}
-		remoteID, err := handshake(conn, p.ID)
+		remoteID, err := Handshake(conn, p.ID)
 		if err != nil {
 			conn.Close()
 			continue

@@ -1,0 +1,146 @@
+version: '3.8'
+
+# P2P Chat Multi-Peer Demo
+# This creates a network of 6 peers that automatically connect to each other
+services:
+  # Bootstrap peer - the first one that others connect to
+  peer-bootstrap:
+    build: .
+    container_name: p2p-bootstrap
+    environment:
+      - P2P_LISTEN_ADDR=0.0.0.0:8080
+      - P2P_LOG_LEVEL=info
+      - P2P_LOG_FORMAT=text
+      - P2P_HEARTBEAT_INTERVAL=10s
+      - P2P_HEARTBEAT_TIMEOUT=5s
+      - P2P_MAX_CONNECTIONS=20
+    ports:
+      - "8080:8080"
+    networks:
+      p2p-network:
+        ipv4_address: 172.20.0.10
+    stdin_open: true
+    tty: true
+
+  # Peer 1 - connects to bootstrap
+  peer-1:
+    build: .
+    container_name: p2p-peer-1
+    environment:
+      - P2P_LISTEN_ADDR=0.0.0.0:8080
+      - P2P_PEERS=peer-bootstrap:8080
+      - P2P_LOG_LEVEL=info
+      - P2P_LOG_FORMAT=text
+      - P2P_HEARTBEAT_INTERVAL=10s
+      - P2P_HEARTBEAT_TIMEOUT=5s
+      - P2P_MAX_CONNECTIONS=20
+    ports:
+      - "8081:8080"
+    networks:
+      p2p-network:
+        ipv4_address: 172.20.0.11
+    depends_on:
+      - peer-bootstrap
+    stdin_open: true
+    tty: true
+
+  # Peer 2 - connects to bootstrap and peer-1
+  peer-2:
+    build: .
+    container_name: p2p-peer-2
+    environment:
+      - P2P_LISTEN_ADDR=0.0.0.0:8080
+      - P2P_PEERS=peer-bootstrap:8080,peer-1:8080
+      - P2P_LOG_LEVEL=info
+      - P2P_LOG_FORMAT=text
+      - P2P_HEARTBEAT_INTERVAL=10s
+      - P2P_HEARTBEAT_TIMEOUT=5s
+      - P2P_MAX_CONNECTIONS=20
+    ports:
+      - "8082:8080"
+    networks:
+      p2p-network:
+        ipv4_address: 172.20.0.12
+    depends_on:
+      - peer-bootstrap
+      - peer-1
+    stdin_open: true
+    tty: true
+
+  # Peer 3 - connects to bootstrap and peer-2
+  peer-3:
+    build: .
+    container_name: p2p-peer-3
+    environment:
+      - P2P_LISTEN_ADDR=0.0.0.0:8080
+      - P2P_PEERS=peer-bootstrap:8080,peer-2:8080
+      - P2P_LOG_LEVEL=info
+      - P2P_LOG_FORMAT=text
+      - P2P_HEARTBEAT_INTERVAL=10s
+      - P2P_HEARTBEAT_TIMEOUT=5s
+      - P2P_MAX_CONNECTIONS=20
+    ports:
+      - "8083:8080"
+    networks:
+      p2p-network:
+        ipv4_address: 172.20.0.13
+    depends_on:
+      - peer-bootstrap
+      - peer-2
+    stdin_open: true
+    tty: true
+
+  # Peer 4 - connects to multiple peers for redundancy
+  peer-4:
+    build: .
+    container_name: p2p-peer-4
+    environment:
+      - P2P_LISTEN_ADDR=0.0.0.0:8080
+      - P2P_PEERS=peer-1:8080,peer-2:8080,peer-3:8080
+      - P2P_LOG_LEVEL=info
+      - P2P_LOG_FORMAT=text
+      - P2P_HEARTBEAT_INTERVAL=10s
+      - P2P_HEARTBEAT_TIMEOUT=5s
+      - P2P_MAX_CONNECTIONS=20
+    ports:
+      - "8084:8080"
+    networks:
+      p2p-network:
+        ipv4_address: 172.20.0.14
+    depends_on:
+      - peer-1
+      - peer-2
+      - peer-3
+    stdin_open: true
+    tty: true
+
+  # Peer 5 - connects to several peers for a well-connected network
+  peer-5:
+    build: .
+    container_name: p2p-peer-5
+    environment:
+      - P2P_LISTEN_ADDR=0.0.0.0:8080
+      - P2P_PEERS=peer-bootstrap:8080,peer-3:8080,peer-4:8080
+      - P2P_LOG_LEVEL=info
+      - P2P_LOG_FORMAT=text
+      - P2P_HEARTBEAT_INTERVAL=10s
+      - P2P_HEARTBEAT_TIMEOUT=5s
+      - P2P_MAX_CONNECTIONS=20
+    ports:
+      - "8085:8080"
+    networks:
+      p2p-network:
+        ipv4_address: 172.20.0.15
+    depends_on:
+      - peer-bootstrap
+      - peer-3
+      - peer-4
+    stdin_open: true
+    tty: true
+
+networks:
+  p2p-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
